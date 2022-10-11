@@ -1,15 +1,21 @@
-{% macro get_tables_by_pattern_sql(schema_pattern, table_pattern, exclude='', database=target.database) %}
+{% macro get_tables_by_pattern_sql(schema_pattern, table_pattern, exclude='', database=target.database, omit_database_from_clause=True) %}
     {{ return(adapter.dispatch('get_tables_by_pattern_sql', 'dbt_utils')
-        (schema_pattern, table_pattern, exclude, database)) }}
+        (schema_pattern, table_pattern, exclude, database, omit_database_from_clause)) }}
 {% endmacro %}
 
-{% macro default__get_tables_by_pattern_sql(schema_pattern, table_pattern, exclude='', database=target.database) %}
+{% macro default__get_tables_by_pattern_sql(schema_pattern, table_pattern, exclude='', database=target.database, omit_database_from_clause=True) %}
+
+    {% set database_clause = '{{ database }}.'%}
+    {% if omit_database_from_clause %}
+        {% set database_clause = ''%}
+    
+    {% endif %}
 
         select distinct
             table_schema as {{ adapter.quote('table_schema') }},
             table_name as {{ adapter.quote('table_name') }},
             {{ dbt_utils.get_table_types_sql() }}
-        from {{ database }}.information_schema.tables
+        from {{ database_clause }}.information_schema.tables
         where table_schema ilike '{{ schema_pattern }}'
         and table_name ilike '{{ table_pattern }}'
         and table_name not ilike '{{ exclude }}'
